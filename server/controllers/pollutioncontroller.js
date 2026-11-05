@@ -38,9 +38,12 @@ function readSamples() {
   });
 
   cachedSamples = rows.map((row) => {
-    const lat = Number(row['Latitude (degree)']);
-    const lng = Number(row['Longitude (degree)']);
-    const concentration = Number(row['Microplastics Measurement']);
+    const latRaw = String(row['Latitude (degree)'] || '').trim();
+    const lngRaw = String(row['Longitude (degree)'] || '').trim();
+    const concentrationRaw = String(row['Microplastics Measurement'] || '').trim();
+    const lat = latRaw ? Number(latRaw) : NaN;
+    const lng = lngRaw ? Number(lngRaw) : NaN;
+    const concentration = concentrationRaw ? Number(concentrationRaw) : null;
     const concentrationClass = String(row['Concentration Class'] || '').trim();
     const unit = String(row.Unit || '').trim();
 
