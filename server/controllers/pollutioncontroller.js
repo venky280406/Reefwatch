@@ -10,7 +10,7 @@ const { parse } = require('csv-parse/sync');
 
 const CSV_PATH = path.join(__dirname, '..', 'uploads', 'microplastics.csv');
 const SOURCE_NAME = 'NOAA NCEI marine microplastics dataset';
-const SOURCE_URL = 'https://www.ncei.noaa.gov/access/metadata/landing-page/';
+const SOURCE_URL = 'https://www.ncei.noaa.gov/access/metadata/landing-page/bin/iso?id=gov.noaa.ncei%3AMicroplasticsDatabase';
 
 const CLASS_SCORE = {
   'very low': 15,
@@ -56,6 +56,8 @@ function readSamples() {
       ocean: row.Ocean || '',
       region: row.Region || '',
       beach: row['Beach Location'] || row.Subregion || row.Region || row.Country || 'Unspecified site',
+      marineSetting: row['Marine Setting'] || 'Unspecified setting',
+      samplingMethod: row['Sampling Method'] || 'Unspecified method',
       concentration: Number.isFinite(concentration) ? concentration : null,
       unit,
       concentrationClass,
@@ -85,6 +87,8 @@ function buildHotspots(samples) {
       sample.beach,
       sample.lat.toFixed(3),
       sample.lng.toFixed(3),
+      sample.marineSetting,
+      sample.samplingMethod,
       sample.unit,
     ].join('|');
 
@@ -96,6 +100,8 @@ function buildHotspots(samples) {
         lat: sample.lat,
         lng: sample.lng,
         ocean: sample.ocean,
+        marineSetting: sample.marineSetting,
+        samplingMethod: sample.samplingMethod,
         unit: sample.unit,
         count: 0,
         concentrationTotal: 0,
@@ -134,6 +140,8 @@ function buildHotspots(samples) {
       lat: group.lat,
       lng: group.lng,
       ocean: group.ocean,
+      marineSetting: group.marineSetting,
+      samplingMethod: group.samplingMethod,
       score: CLASS_SCORE[concentrationClass.toLowerCase()] ?? 50,
       count: group.count,
       avgConcentration: group.concentrationCount
