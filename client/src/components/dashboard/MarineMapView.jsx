@@ -54,6 +54,7 @@ export default function MarineMapView({ className = 'h-[680px]' }) {
   const [loading, setLoading] = useState(true);
   const [dataMode, setDataMode] = useState('loading');
   const [dataSource, setDataSource] = useState('');
+  const [dataSourceUrl, setDataSourceUrl] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -62,11 +63,13 @@ export default function MarineMapView({ className = 'h-[680px]' }) {
       setHotspots(data.hotspots);
       setTotal(Number(data.totalReadings) || 0);
       setDataSource(data?.source || 'Reefwatch API');
+      setDataSourceUrl(data?.sourceUrl || '');
       setDataMode(data?.isLive ? 'live' : 'dataset');
     } catch {
       setHotspots(DEMO_HOTSPOTS);
       setTotal(DEMO_HOTSPOTS.reduce((sum, h) => sum + h.count, 0));
       setDataSource('');
+      setDataSourceUrl('');
       setDataMode('demo');
     } finally {
       setLoading(false);
@@ -128,6 +131,8 @@ export default function MarineMapView({ className = 'h-[680px]' }) {
                     {dataMode === 'dataset' || dataMode === 'live' ? (
                       <>
                         <p className="text-xs text-slate-600">Most common concentration class: {h.concentrationClass || 'Unclassified'}</p>
+                        {h.marineSetting && <p className="text-xs text-slate-600">Marine setting: {h.marineSetting}</p>}
+                        {h.samplingMethod && <p className="text-xs text-slate-600">Sampling method: {h.samplingMethod}</p>}
                         {h.avgConcentration != null && <p className="text-xs text-slate-600">Mean measured concentration: {Number(h.avgConcentration).toLocaleString()} {h.unit}</p>}
                         <p className="text-xs text-slate-600">Class display score: {h.score}/100 (derived from source class)</p>
                         {h.sampleDateStart && <p className="text-xs text-slate-600">Sample dates: {h.sampleDateStart}{h.sampleDateEnd && h.sampleDateEnd !== h.sampleDateStart ? ` to ${h.sampleDateEnd}` : ''}</p>}
@@ -192,7 +197,7 @@ export default function MarineMapView({ className = 'h-[680px]' }) {
         <div className="border-t border-teal-200/15 px-4 py-2">
           <p className="mb-2 text-[10px] leading-relaxed text-teal-100/60">
             {dataMode === 'live' && `Live data source: ${dataSource}.`}
-            {dataMode === 'dataset' && `${dataSource}: archived field observations, not live sensor readings. Display score is derived from source concentration class.`}
+            {dataMode === 'dataset' && <>{dataSource}: archived field observations, not live sensor readings. Class thresholds vary by marine setting; the 0–100 score is display-only. {dataSourceUrl && <a className="underline" href={dataSourceUrl} target="_blank" rel="noreferrer">Source metadata</a>}</>}
             {dataMode === 'demo' && 'Demo mode: API unavailable. Locations and scores are illustrative, not measured observations.'}
             {dataMode === 'loading' && 'Connecting to Reefwatch data…'}
           </p>
