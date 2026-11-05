@@ -53,6 +53,7 @@ export default function MarineMapView({ className = 'h-[680px]' }) {
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dataMode, setDataMode] = useState('loading');
+  const [dataSource, setDataSource] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -60,10 +61,12 @@ export default function MarineMapView({ className = 'h-[680px]' }) {
       if (!Array.isArray(data?.hotspots)) throw new Error('Unexpected pollution API response');
       setHotspots(data.hotspots);
       setTotal(Number(data.totalReadings) || 0);
-      setDataMode('api');
+      setDataSource(data?.source || 'Reefwatch API');
+      setDataMode(data?.isLive ? 'live' : 'dataset');
     } catch {
       setHotspots(DEMO_HOTSPOTS);
       setTotal(DEMO_HOTSPOTS.reduce((sum, h) => sum + h.count, 0));
+      setDataSource('');
       setDataMode('demo');
     } finally {
       setLoading(false);
@@ -122,11 +125,19 @@ export default function MarineMapView({ className = 'h-[680px]' }) {
                 <Popup closeButton={false}>
                   <div className="min-w-[180px]">
                     <h3 className="text-base font-semibold">{label(h)}</h3>
-                    <p className="text-xs text-slate-500">Illustrative pollution score: {h.score}/100</p>
+                    {dataMode === 'dataset' || dataMode === 'live' ? (
+                      <>
+                        <p className="text-xs text-slate-600">Most common concentration class: {h.concentrationClass || 'Unclassified'}</p>
+                        {h.avgConcentration != null && <p className="text-xs text-slate-600">Mean measured concentration: {Number(h.avgConcentration).toLocaleString()} {h.unit}</p>}
+                        <p className="text-xs text-slate-600">Class display score: {h.score}/100 (derived from source class)</p>
+                        {h.sampleDateStart && <p className="text-xs text-slate-600">Sample dates: {h.sampleDateStart}{h.sampleDateEnd && h.sampleDateEnd !== h.sampleDateStart ? ` to ${h.sampleDateEnd}` : ''}</p>}
+                        {h.accessionUrl && <a className="text-xs text-blue-700 underline" href={h.accessionUrl} target="_blank" rel="noreferrer">Open NCEI record</a>}
+                      </>
+                    ) : <p className="text-xs text-slate-500">Illustrative demo score: {h.score}/100</p>}
                     <div className="my-2 h-1.5 rounded bg-slate-200">
                       <div className="h-full rounded" style={{ width: `${h.score}%`, background: color }} />
                     </div>
-                    <p className="text-xs">{h.count} sample reading{h.count === 1 ? '' : 's'} (demo data)</p>
+                    <p className="text-xs">{h.count} source sample{h.count === 1 ? '' : 's'}</p>
                   </div>
                 </Popup>
               </CircleMarker>
@@ -138,7 +149,7 @@ export default function MarineMapView({ className = 'h-[680px]' }) {
       <aside className="absolute left-3 top-3 z-[1000] flex max-h-[calc(100%-1.5rem)] w-72 flex-col overflow-hidden rounded-2xl border border-teal-200/15 bg-[#071f26]/95 text-slate-100 shadow-xl backdrop-blur">
         <div className="p-4">
           <h2 className="font-serif text-xl font-bold tracking-tight">Reef pollution map</h2>
-          <p className="mt-1 text-xs text-teal-100/70">Brighter areas indicate higher sample scores. Select a marker for details.</p>
+          <p className="mt-1 text-xs text-teal-100/70">Brighter areas indicate higher microplastic concentration classes. Select a marker for details.</p>
         </div>
         <div className="grid grid-cols-3 border-y border-teal-200/15 text-center">
           <div className="border-r border-teal-200/15 p-3">
@@ -147,7 +158,7 @@ export default function MarineMapView({ className = 'h-[680px]' }) {
           </div>
           <div className="border-r border-teal-200/15 p-3">
             <b className="block font-serif text-xl">{avg}</b>
-            <span className="text-[11px] text-teal-100/60">avg score</span>
+            <span className="text-[11px] text-teal-100/60">avg class score</span>
           </div>
           <div className="p-3">
             <b className="block font-serif text-xl">{shownReadings.toLocaleString()}</b>
@@ -161,7 +172,7 @@ export default function MarineMapView({ className = 'h-[680px]' }) {
           </label>
           <div>
             <label htmlFor="minScore" className="flex justify-between text-xs text-teal-100/60">
-              <span>Minimum pollution score</span><span>{minScore}</span>
+              <span>Minimum class score</span><span>{minScore}</span>
             </label>
             <input id="minScore" type="range" min="0" max="90" step="5" value={minScore} onChange={(e) => setMinScore(Number(e.target.value))} className="mt-2 w-full accent-teal-300" />
           </div>
@@ -180,8 +191,9 @@ export default function MarineMapView({ className = 'h-[680px]' }) {
         </div>
         <div className="border-t border-teal-200/15 px-4 py-2">
           <p className="mb-2 text-[10px] leading-relaxed text-teal-100/60">
-            {dataMode === 'api' && 'Connected to the Reefwatch API.'}
-            {dataMode === 'demo' && 'Demo mode: API unavailable. Locations and scores are illustrative, not live observations.'}
+            {dataMode === 'live' && `Live data source: ${dataSource}.`}
+            {dataMode === 'dataset' && `${dataSource}: archived field observations, not live sensor readings. Display score is derived from source concentration class.`}
+            {dataMode === 'demo' && 'Demo mode: API unavailable. Locations and scores are illustrative, not measured observations.'}
             {dataMode === 'loading' && 'Connecting to Reefwatch data…'}
           </p>
           <div className="flex justify-end">
